@@ -1,35 +1,71 @@
-function manageSettings(logseq) {
-  //Default settings - Extracts highlights and bold items
-  const highlightsRegEx = "(==[^=]+==)";
-  const boldRegEx = "(\\*\\*[^\\*]+\\*\\*)";
+import '@logseq/libs';
 
-  //CHANGE THIS WHEN ADDING NEW SETTINGS
-  const settingsVersion = "v2";
 
-  //Use only for saving these first time in the plugin settings file
-  let defaultSettings = {
-    expr: `${highlightsRegEx}|${boldRegEx}`,
-    summaryTitle: "Summary",
-    keepRefs: true, //Keeps a reference to the source block in this format [*](((uuid)))
-    nested: true, //Extract from current block and all the child blocks
-    keepMeta: false, //Remove highlights and bold
-    keepSummaryAbove: false, //Keep summary above the current block
-    settingsVersion: settingsVersion,
-  };
+function manageSettings() {
+  const highlightsRegEx = "(==.+?==)";
+  const boldRegEx = "(\\*\\*.+?\\*\\*)";
 
-  //Load plugin settings
-  let pluginSettings = logseq.settings;
+  const settingsArray = [
+    {
+      key: "generalHeading",
+      title: "⚙️ General settings",
+      description: "",
+      type: "heading",
+      default: null
+    },
+    {
+      key: "summaryTitle",
+      title: "Parent block content for all extracted items",
+      description: "",
+      type: "string",
+      default: "***Summary***",
+    },
+    {
+      key: "keepSummaryAbove",
+      title: "Keep summary above the block for extraction?",
+      type: "boolean",
+      description: "",
+      default: "false",
+    },
+    {
+      key: "keepRefs",
+      title: "Keep a reference to the source block in the format [→](((uuid)))?",
+      type: "boolean",
+      description: "",
+      default: "true",
+    },
+    {
+      key: "refLabel",
+      title: "Label to use for reference",
+      description: "",
+      type: "string",
+      default: "→",
+    },
+    {
+      key: "keepMeta",
+      title: "Remove markdown meta syntax from highlights?",
+      type: "boolean",
+      description: "",
+      default: "false",
+    },
 
-  //This is to ensure that in future if new settings are added they are written over to settings file.
-  //This will overwrite user's existing settings though.
-  const shouldUpdateSettings =
-    pluginSettings.settingsVersion != defaultSettings.settingsVersion;
+    {
+      key: "advancedHeading",
+      title: "☢️ Advanced settings",
+      description: "",
+      type: "heading",
+      default: null
+    },
+    {
+      key: "expr",
+      title: "Regular Expression for extracting highlights",
+      description: "",
+      type: "string",
+      default: `${highlightsRegEx}|${boldRegEx}`,
+    }
+  ]
 
-  //If first time, then save default settings
-  if (shouldUpdateSettings) {
-    pluginSettings = defaultSettings;
-    logseq.updateSettings(pluginSettings);
-  }
+  logseq.useSettingsSchema(settingsArray);
 }
 
 function main() {
