@@ -108,90 +108,38 @@ function main() {
     logseq.App.showMsg("✔️ Extraction completed successfully!");
   };
 
-  var processBlock = async (currentBlock) => {
-    //Get current block content
-    const block = await logseq.Editor.getBlock(currentBlock.uuid, {
-      includeChildren: pluginSettings.nested,
-    });
-    const regEx = new RegExp(pluginSettings.expr, "g");
 
-    //Get all extracts that match regex
-    //const extracts = [...block.content.matchAll(regEx)];
-    let extracts = [];
-    getExtracts(block, regEx, extracts);
-    //if extracts is empty then return
+  const commandLabel = "Extract highlights";
+  const regEx = new RegExp(logseq.settings.expr, "g");
 
-    return extracts;
-  };
+  logseq.Editor.registerBlockContextMenuItem(commandLabel, async (e) => {
+    const block = await logseq.Editor.getBlock(e.uuid, { includeChildren: true });
+    const extracts = [...genExtracts([block], regEx)];
 
-  //blockPipeline is the entry point when we extract at block level.
-  var blockPipeline = async (currentBlock) => {
-    let extracts = await processBlock(currentBlock);
-
-    //EXIT if no extracts found
-    if (!extracts || !extracts.length) {
-      logseq.App.showMsg("❗ Nothing to extract!");
-      return;
-    }
-
-    summarizeExtracts(extracts, currentBlock, pluginSettings.keepSummaryAbove);
-  };
-
-  //blockPipeline is the entry point when we extract at page level.
-  var pagePipeline = async (context) => {
-    let pageBlocks = await logseq.Editor.getPageBlocksTree(context.page);
-    let summaryPosition = pluginSettings.keepSummaryAbove ? 0 : pageBlocks.length-1;
-    let extracts = [];
-
-    for (const block of pageBlocks) {
-      let result = await processBlock(block);
-      !!result && extracts.push(result);
-    }
-
-    extracts = extracts.flat();
-
-    //EXIT if no extracts found
-    if (!extracts || !extracts.length) {
-      logseq.App.showMsg("❗ Nothing to extract!");
-      return;
-    }
-
-    summarizeExtracts(extracts, pageBlocks[summaryPosition], pluginSettings.keepSummaryAbove);
-  };
-
-  //Extraction function which registers Extract as a context menu for a block
-  logseq.Editor.registerBlockContextMenuItem("Extract", blockPipeline);
-
-  //Extraction function which registers Extract as a context menu for a block
-  logseq.App.registerPageMenuItem("Extract", pagePipeline);
-  // logseq.App.registerPageMenuItem(
-  //     'Extract', async (context) => {
-
-  //         let pageBlocks = await logseq.Editor.getPageBlocksTree(context.page);
-  //         pageBlocks.forEach((block) => processBlock(block));
-  //     }
-  // );
-}
-
-function getExtracts(currentBlock, regEx, extracts) {
-  //Get children of the current block
-  let children = currentBlock.children;
-
-  //Find the extracts from the current block
-  let currentBlockExtracts = [...currentBlock.content.matchAll(regEx)];
-
-  //Create a map from current block's extracts
-  let currentBlockExtractsWithBlockRef = currentBlockExtracts.map((e) => {
-    return { content: e[0], source: currentBlock };
+    summarizeExtracts(extracts, block, logseq.settings.keepSummaryAbove);
   });
 
-  //Push the extracts map from current block into main extracts array
-  !!currentBlockExtracts.length &&
-    extracts.push(...currentBlockExtractsWithBlockRef);
+  logseq.App.registerPageMenuItem(commandLabel, async (e) => {
+    const pageBlocks = await logseq.Editor.getPageBlocksTree(e.page);
+    const extracts = [...genExtracts(pageBlocks, regEx)];
 
-  //If there are children then call this method recursively (filling the main extracts array which is passed as argument)
-  !!children.length && children.forEach((c) => getExtracts(c, regEx, extracts));
-  return;
+    const targetBlock = pageBlocks[logseq.settings.keepSummaryAbove ? 0 : pageBlocks.length - 1];
+    summarizeExtracts(extracts, targetBlock, logseq.settings.keepSummaryAbove);
+  });
+}
+
+function* genExtracts(blocks, regEx) {
+  for (const currentBlock of blocks) {
+    //Find the extracts from the current block
+    const currentBlockExtracts = currentBlock.content.matchAll(regEx);
+
+    for (const [extract] of currentBlockExtracts)
+      yield { content: extract, source: currentBlock };
+
+    //If there are children then call this method recursively (filling the main extracts array which is passed as argument)
+    if (currentBlock.children.length !== 0)
+      yield* genExtracts(currentBlock.children, regEx)
+  }
 }
 
 // bootstrap
