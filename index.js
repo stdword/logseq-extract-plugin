@@ -69,9 +69,7 @@ function manageSettings() {
 }
 
 function main() {
-  manageSettings(logseq);
-
-  const pluginSettings = logseq.settings;
+  manageSettings();
 
   //targetBlock is the block under which the summary will be created.
   //For block extract this will be immediately below the current block.
@@ -79,11 +77,15 @@ function main() {
   //If keepSummaryAbove is true then it'll be the first block in the page for pagePipeline.
   //If keepSummaryAbove is false then summary will appear above the summarized block for blockPipeline.
   var summarizeExtracts = async (extracts, targetBlock, keepSummaryAbove) => {
-    //Create a summary block below the current block (sibling) - you can change content of this block
-    //from Summary to something else by changing the summaryTitle property in settings
+    if (extracts.length === 0) {
+      logseq.UI.showMsg("Nothing to extract", "error", {timeout: 3000});
+      return;
+    }
+
+    //Create a summary block below the current block (sibling)
     var summaryBlock = await logseq.Editor.insertBlock(
       targetBlock.uuid,
-      pluginSettings.summaryTitle,
+      logseq.settings.summaryTitle,
       { sibling: true, before: keepSummaryAbove }
     );
 
@@ -92,20 +94,19 @@ function main() {
       let content = i.content;
 
       //Remove == or ** from start and end if keepMeta is false
-      content = pluginSettings.keepMeta ? content : content.slice(2, -2);
+      content = logseq.settings.keepMeta ? content : content.slice(2, -2);
 
       //Keep reference of source block
-      content = pluginSettings.keepRefs
-        ? `${content} [*](((${i.source.uuid})))`
+      content = logseq.settings.keepRefs
+        ? `${content} [${logseq.settings.refLabel}](((${i.source.uuid})))`
         : content;
-      if (!i.source.properties?.id) {
+      if (!i.source.properties?.id)
         logseq.Editor.upsertBlockProperty(i.source.uuid, "id", i.source.uuid);
-      }
 
       logseq.Editor.insertBlock(summaryBlock.uuid, content, { sibling: false });
     });
 
-    logseq.App.showMsg("✔️ Extraction completed successfully!");
+    logseq.UI.showMsg("Extraction completed!", "success", {timeout: 3000});
   };
 
 
