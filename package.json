@@ -1,26 +1,25 @@
 {
     "name": "logseq-extract-plugin",
-    "version": "2.0.3",
+    "version": "2.1.0",
     "description": "Extract highlighted/bold content from block or page",
-    "main": "index.html",
     "author": "Sidharth Panwar",
     "license": "MIT",
     "scripts": {
-        "dev": "parcel ./index.html --public-url ./",
-        "build": "parcel build --public-url . index.html"
+        "preinstall": "npx only-allow pnpm",
+        "clean": "rm -r ./dist/* || true",
+        "dev": "vite",
+        "build": "vite build --mode=dev",
+        "prod": "pnpm run clean && vite build"
     },
     "dependencies": {
-        "@logseq/libs": "^0.0.1-alpha.35"
-    },
-    "devDependencies": {
-        "parcel": "^2.0.0-beta.2",
-        "parcel-bundler": "^1.12.4"
+        "@logseq/libs": "^0.0.15",
+        "vite": "^5.0.2",
+        "vite-plugin-logseq": "^1.1.2"
     },
     "logseq": {
         "id": "logseq-extract",
-        "icon": "./extract.svg"
-    },
-    "browserslist": [
-        "chrome 80"
-    ]
+        "title": "Extract",
+        "main": "./dist/index.html",
+        "icon": "./icon.png"
+    }
 }
